@@ -42,10 +42,6 @@
       <div class="q"><span class="n">2</span>When is cash going to dip?</div>
       <div class="a date">{{ longDate(o.lowDay) }}</div>
       <div class="why">Cash falls to <b>{{ f.gbp(o.low) }}</b>, which is <b>{{ f.k(o.today - o.low) }} less than today</b>. The cause is {{ drivers.length }} large {{ drivers.length === 1 ? 'payment' : 'payments' }} {{ monthName(drivers[0]?.date) === monthName(drivers[drivers.length - 1]?.date) ? 'in ' + monthName(drivers[0]?.date) : 'between ' + monthName(drivers[0]?.date) + ' and ' + monthName(drivers[drivers.length - 1]?.date) }} (see below).</div>
-      <div v-for="b in runsOut" :key="b.id" class="callout crit">
-        <icon n="alert" :s="16"></icon>
-        <div><b>{{ b.name }} runs out of cash on {{ f.date(b.o.firstNeg) }}.</b> It needs a {{ f.k(-b.o.headroom) }} top-up before then.</div>
-      </div>
       <div v-if="!runsOut.length && o.low < o.buffer" class="callout warn"><icon n="alert" :s="16"></icon><div>Drops below the {{ f.k(o.buffer) }} safety buffer from {{ f.date(o.firstBuf) }}.</div></div>
       <div v-if="!runsOut.length && o.low >= o.buffer" class="callout good"><icon n="check" :s="16"></icon><div>Never drops below the {{ f.k(o.buffer) }} safety buffer.</div></div>
     </div>
@@ -75,7 +71,7 @@
     <div class="drivers">
       <h4>What causes the dip</h4>
       <div class="drv" v-for="d in drivers" :key="d.date + d.what">
-        <div class="dt"><b>{{ dayNum(d.date) }}</b><small>{{ monShort(d.date) }}</small></div>
+        <div class="dt"><b>{{ dayNum(d.date) }} {{ monShort(d.date) }}</b><small>in {{ d.date - X.AS_AT }} days</small></div>
         <div class="w"><b>{{ shortWhat(d) }}</b><small><span class="sw" :style="{background: X.BIZ[d.biz].colour}"></span>{{ X.BIZ[d.biz].short }} · {{ d.party }}</small></div>
         <div class="amt">−{{ f.k(d.amount) }}</div>
       </div>

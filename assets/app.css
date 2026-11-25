@@ -313,7 +313,7 @@ input[type=range] { accent-color: var(--teal); width: 180px; }
 .ans .a.date { font-size: 38px; }
 .ans .why { color: var(--ink-2); font-size: 14px; line-height: 1.5; }
 .ans .why b { color: var(--ink); }
-.ans .rows { margin-top: auto; padding-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.ans .rows { margin-top: 0; padding-top: 18px; display: flex; flex-direction: column; gap: 10px; }
 .ans .row { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; font-size: 13.5px; }
 .ans .row .sw { width: 10px; height: 10px; border-radius: 3px; }
 .ans .row b { font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -337,11 +337,11 @@ input[type=range] { accent-color: var(--teal); width: 180px; }
 .chartcard h3 { margin: 0; font-family: var(--display); font-size: 17px; font-weight: 600; }
 .chartcard .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
 .drivers h4 { margin: 0 0 10px; font-family: var(--display); font-size: 15px; font-weight: 600; }
-.drv { display: grid; grid-template-columns: 54px 1fr auto; gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line-2); }
+.drv { display: grid; grid-template-columns: 76px 1fr auto; gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line-2); }
 .drv:first-of-type { border-top: 0; }
-.drv .dt { text-align: center; background: var(--line-2); border-radius: 10px; padding: 5px 0; line-height: 1.1; }
-.drv .dt b { display: block; font-family: var(--display); font-size: 18px; font-weight: 600; }
-.drv .dt small { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.drv .dt { line-height: 1.25; }
+.drv .dt b { display: block; font-family: var(--display); font-size: 15px; font-weight: 600; white-space: nowrap; }
+.drv .dt small { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .drv .w b { display: block; font-size: 13.5px; font-weight: 600; }
 .drv .w small { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; }
 .drv .amt { font-weight: 700; color: #B0442E; font-variant-numeric: tabular-nums; }
