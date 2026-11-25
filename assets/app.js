@@ -45,6 +45,9 @@
     shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
     pin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
     phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+    msg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+    pencil: '<path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/><path d="m15 5 4 4"/>',
     mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
     star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
     sync: '<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>',
@@ -101,7 +104,7 @@
 
   // ---- shell ----
   const AppShell = {
-    props: { page: String, title: String, subtitle: String, filter: { type: Boolean, default: true } },
+    props: { page: String, title: String, subtitle: String, filter: { type: Boolean, default: true }, search: { type: Boolean, default: false } },
     components: { Icon, BizLogo },
     setup() {
       const f = X.fmt;
@@ -120,6 +123,7 @@
             <button :class="{on: store.biz==='all'}" @click="store.biz='all'">All businesses</button>
             <button v-for="b in X.BUSINESSES" :key="b.id" :class="{on: store.biz===b.id}" @click="store.biz=b.id"><span class="sw" :style="{background:b.colour}"></span>{{ b.short }}</button>
           </div>
+          <input v-if="search" class="search topsearch" type="search" placeholder="Search customers by name, postcode or phone" aria-label="Search customers">
           <div class="asat"><i class="live"></i>{{ asAt }}</div>
           <div class="avatar" title="Ian Simm, Group CEO">IS</div>
         </div>
@@ -128,8 +132,28 @@
     </div>`
   };
 
+  // masonry: each card spans as many 4px grid rows as its height, so cards stack
+  // into the shortest column with no gaps (DOM order is kept)
+  const ROW = 4, GAP = 20;
+  const Masonry = {
+    mounted(el) {
+      const layout = () => [...el.children].forEach(c => { const h = c.getBoundingClientRect().height; if (h) c.style.gridRowEnd = `span ${Math.ceil((h + GAP) / ROW)}`; });
+      el._ro = new ResizeObserver(() => requestAnimationFrame(layout));
+      el._ro.observe(el);
+      [...el.children].forEach(c => el._ro.observe(c));
+      // the app is hidden (v-cloak) while it mounts, so measure again once it's visible and fonts have loaded
+      requestAnimationFrame(() => requestAnimationFrame(layout));
+      document.fonts && document.fonts.ready.then(layout);
+      window.addEventListener('load', layout);
+      el._layout = layout;
+    },
+    updated(el) { el._layout && requestAnimationFrame(el._layout); },
+    unmounted(el) { el._ro && el._ro.disconnect(); window.removeEventListener('load', el._layout); }
+  };
+
   function mount(component) {
     const app = Vue.createApp(component);
+    app.directive('masonry', Masonry);
     app.component('AppShell', AppShell);
     app.component('Icon', Icon);
     app.component('BizLogo', BizLogo);

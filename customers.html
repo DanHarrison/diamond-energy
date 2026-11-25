@@ -9,21 +9,38 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/app.css">
 <style>
-  .cx-top { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 16px; }
-  .cx-top .select { margin-left: auto; min-width: 280px; padding: 9px 12px; font-size: 13.5px; }
   .cx-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; }
   .cx-ltv { text-align: right; padding-left: 28px; border-left: 1px solid var(--line); }
   .cx-ltv small { display: block; color: var(--muted); font-size: 13px; }
   .cx-ltv b { font-family: var(--display); font-size: 40px; font-weight: 600; letter-spacing: -.025em; color: var(--teal); }
   .cx-ltv .uses { display: inline-flex; gap: 6px; margin-top: 6px; }
-  .cx-body { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; margin-top: 20px; }
+  .cx-body { margin-top: 20px; }
+  .cx-body.masonry { grid-auto-flow: row dense; }
+  .col-1 { grid-column: 1; } .col-2 { grid-column: 2; }
+  .btn-add { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #BFE3D7; background: #F2FBF8; color: var(--teal); font-weight: 600; font-size: 12.5px; padding: 6px 12px; border-radius: 9px; cursor: pointer; }
+  .btn-add:hover { background: #E3F6EF; border-color: var(--mint); }
+  .note-block { width: 100%; min-height: 96px; resize: vertical; border: 1px solid #F3E8C4; background: #FFFBEF; border-radius: 10px; padding: 11px 13px; font: inherit; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
+  .note-block:focus { outline: none; border-color: var(--mint); background: #fff; }
+  .note-view { background: #FFFBEF; border: 1px solid #F3E8C4; border-radius: 10px; padding: 11px 13px; font-size: 13.5px; line-height: 1.5; color: var(--ink); white-space: pre-wrap; }
+  .icon-edit { width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--line); background: #fff; color: var(--ink-2); display: grid; place-items: center; cursor: pointer; }
+  .icon-edit:hover { border-color: var(--mint); color: var(--teal); background: #F2FBF8; }
+  .card-h .ph { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: #E6F4F1; color: var(--teal); flex: none; }
+  .none-state { color: var(--muted); font-size: 14px; padding: 2px 0 4px; }
   .bizgroup + .bizgroup { margin-top: 16px; }
   .bizgroup h4 { margin: 0 0 9px; display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
   .svcgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .bylegend { display: flex; gap: 10px; margin-top: 12px; }
-  .bylegend div { flex: 1; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
-  .bylegend small { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
-  .bylegend b { font-family: var(--display); font-size: 19px; font-weight: 600; }
+  .comm { display: grid; grid-template-columns: 32px 1fr; gap: 12px; padding: 11px 0; border-top: 1px solid var(--line-2); }
+  .comm:first-child { border-top: 0; padding-top: 0; }
+  .comm .ci { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; }
+  .comm .ct b { font-size: 13.5px; font-weight: 600; }
+  .comm .cb, .note .nt { color: var(--ink-2); font-size: 13px; margin-top: 2px; line-height: 1.45; }
+  .cm { color: var(--muted); font-size: 11.5px; margin-top: 4px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .cm .sw { width: 7px; height: 7px; border-radius: 50%; }
+  .note-input { width: 100%; resize: none; border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; font: inherit; font-size: 13px; color: var(--ink); background: #FBFDFD; }
+  .note-input:focus { outline: none; border-color: var(--mint); }
+  .notes { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .note { background: #FFFBEF; border: 1px solid #F3E8C4; border-radius: 10px; padding: 10px 12px; }
+  .note .nt { margin-top: 0; color: var(--ink); }
   .empty { color: var(--faint); font-size: 12.5px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 12px; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
@@ -35,16 +52,7 @@
 <div id="app" v-cloak></div>
 
 <script type="text/x-template" id="page">
-<app-shell page="customers" :filter="false">
-  <div class="cx-top">
-    <div class="hello" style="margin:0">
-      <h1>Customer 360</h1>
-      <p>One record per customer, across all three Diamond businesses</p>
-    </div>
-    <select class="select" v-model="cid">
-      <option v-for="c in list" :key="c.id" :value="c.id">{{ c.name }} · {{ c.town }}</option>
-    </select>
-  </div>
+<app-shell page="customers" :filter="false" search>
 
   <div class="card cx-head">
     <div class="cust-head">
@@ -53,28 +61,37 @@
         <h2>{{ c.name }}</h2>
         <div class="meta">
           <span><icon n="pin" :s="14"></icon>{{ c.address }}, {{ c.town }} {{ c.postcode }}</span>
-          <span><icon n="phone" :s="14"></icon>{{ c.phone }}</span>
-          <span><icon n="mail" :s="14"></icon>{{ c.email }}</span>
+          <a class="contact" :href="'tel:' + c.phone.replace(/\s/g, '')"><icon n="phone" :s="14"></icon>{{ c.phone }}</a>
+          <a class="contact" :href="'mailto:' + c.email"><icon n="mail" :s="14"></icon>{{ c.email }}</a>
         </div>
+        <ul class="facts">
+          <li>Lead Source: <b>{{ c.source === 'Referral' ? 'Referral - another customer' : c.source }}</b></li>
+          <li>Customer for <b>{{ tenure }}</b></li>
+        </ul>
         <div class="meta">
-          <span class="tag">Customer since {{ c.since }}</span>
           <span class="tag">{{ c.type }}</span>
-          <span class="tag">Found us via {{ c.source }}</span>
           <span class="tag" v-if="c.rating"><icon n="star" :s="12"></icon>{{ c.rating }}★ Trustpilot review</span>
         </div>
       </div>
     </div>
     <div class="cx-ltv">
-      <small>Lifetime value</small>
+      <small>Lifetime Customer Spend</small>
       <b>{{ f.gbp(total) }}</b>
-      <div class="muted" style="font-size:12.5px">{{ items.length }} services · {{ usedBiz.length }} of 3 Diamond businesses</div>
+      <div class="muted" style="font-size:12.5px">{{ usedBiz.length }} of 3 Diamond businesses</div>
       <div class="uses"><span v-for="b in X.BUSINESSES" :key="b.id" class="pill" :class="usedBiz.includes(b.id) ? 'good' : 'grey'" :style="usedBiz.includes(b.id) ? {background: b.soft, color: b.colour} : {}"><i class="sw" :style="{background: usedBiz.includes(b.id) ? b.colour : '#C9D5D7'}"></i>{{ b.short }}</span></div>
     </div>
   </div>
 
-  <div class="cx-body">
-    <div class="card">
-      <div class="card-h"><div><h3>Services they have</h3><p>Everything this customer buys from the group, in one place</p></div></div>
+  <div class="cx-body masonry" v-masonry>
+    <div class="card col-1">
+      <div class="card-h"><div class="ph"><icon n="file" :s="16"></icon></div><div><h3>Customer notes</h3><p>Shared by sales, engineers and the office</p></div><div class="right"><button v-if="!editing" class="icon-edit" type="button" title="Edit notes" aria-label="Edit notes" @click="startEdit"><icon n="pencil" :s="15"></icon></button><button v-else class="btn-add" type="button" @click="editing = false"><icon n="check" :s="14"></icon>Save</button></div></div>
+      <textarea v-if="editing" ref="noteBox" class="note-block" v-model="noteText" rows="4" aria-label="Customer notes"></textarea>
+      <div v-else class="note-view" @dblclick="startEdit">{{ noteText }}</div>
+      <div class="cm">Last edited by {{ notes[0].who }} · {{ f.date(notes[0].date) }}</div>
+    </div>
+
+    <div class="card col-1">
+      <div class="card-h"><div class="ph"><icon n="layers" :s="16"></icon></div><div><h3>Services they have</h3><p>Everything this customer buys from the group, in one place</p></div></div>
       <div v-for="b in X.BUSINESSES" :key="b.id" class="bizgroup">
         <h4><span class="sw" :style="{background: b.colour}"></span>{{ b.name }}</h4>
         <div class="svcgrid" v-if="items.filter(i => i.biz === b.id).length">
@@ -91,11 +108,22 @@
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-h"><div><h3>Lifetime value by service</h3><p>Paid to date</p></div></div>
-      <e-chart :option="opt" :height="Math.max(200, items.filter(i => i.value > 0).length * 40 + 20)"></e-chart>
-      <div class="bylegend">
-        <div v-for="b in X.BUSINESSES" :key="b.id"><small><i class="sw" :style="{background: b.colour}"></i>{{ b.short }}</small><b>{{ f.gbp(byBiz[b.id] || 0) }}</b></div>
+    <div class="card col-2">
+      <div class="card-h"><div class="ph"><icon n="sync" :s="16"></icon></div><div><h3>Current Subscriptions</h3></div></div>
+      <div class="none-state">None</div>
+    </div>
+
+    <div class="card col-2">
+      <div class="card-h"><div class="ph"><icon n="msg" :s="16"></icon></div><div><h3>Communications</h3></div><div class="right"><button class="btn-add" type="button"><icon n="plus" :s="14"></icon>Add communication</button></div></div>
+      <div class="comms">
+        <div v-for="m in comms" :key="m.date + m.title" class="comm">
+          <div class="ci" :style="{color: X.BIZ[m.biz].colour, background: X.BIZ[m.biz].soft}"><icon :n="CH[m.ch].icon" :s="15"></icon></div>
+          <div>
+            <div class="ct"><b>{{ m.title }}</b></div>
+            <div class="cb">{{ m.body }}</div>
+            <div class="cm">{{ f.date(m.date) }} · {{ CH[m.ch].label }}{{ m.dir ? ' (' + m.dir + ')' : '' }} · <span class="sw" :style="{background: X.BIZ[m.biz].colour}"></span>{{ X.BIZ[m.biz].short }} · {{ m.who }}</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -146,6 +174,39 @@
     return items;
   }
 
+  const CH = { email: { icon: 'mail', label: 'Email' }, call: { icon: 'phone', label: 'Phone call' }, sms: { icon: 'msg', label: 'Text' }, visit: { icon: 'home', label: 'Site visit' } };
+
+  // fictional communication history, built around the customer's jobs in the demo data
+  function commsFor(c) {
+    const js = c.jobs.map(id => X.JOB[id]).filter(j => j && !j.pipeline);
+    if (c.id === 'C-10021') {
+      const solar = js.find(j => j.type === 'Solar PV + Battery'), hp = js.find(j => j.type === 'Air Source Heat Pump');
+      return [
+        { date: X.D(2026, 11, 18), ch: 'email', dir: 'outbound', biz: 'climate', who: 'Jess Turner', title: 'Quote Q-7781 sent: air conditioning for the loft office', body: '£3,640 for a Mitsubishi wall unit. Opened twice, no reply yet.' },
+        { date: X.D(2026, 10, 14), ch: 'visit', biz: 'ppm', who: 'Liam Cole', title: 'Annual heat pump service completed', body: 'No faults found. Flow temperature lowered to 45°C to improve efficiency. Covered by the Heat Pump Care plan.' },
+        { date: X.D(2026, 10, 2), ch: 'sms', dir: 'outbound', biz: 'ppm', who: 'Automated reminder', title: 'Service reminder', body: 'Heat pump service booked for Wed 14 Oct, 8am–12pm. Customer replied to confirm.' },
+        { date: X.D(2026, 8, 24), ch: 'call', dir: 'inbound', biz: 'dge', who: 'Amy Hale', title: 'Asked about payments for exported electricity', body: 'Talked through Smart Export Guarantee options and emailed a tariff comparison.' },
+        { date: hp.install, ch: 'visit', biz: 'climate', who: 'Ryan Marsh', title: 'Heat pump commissioned', body: 'Handover pack and MCS certificate issued. Boiler Care plan switched to Heat Pump Care.' },
+        { date: hp.sale, ch: 'call', dir: 'outbound', biz: 'climate', who: 'Jess Turner', title: 'Heat pump quote accepted', body: f.gbp(hp.stages[0].amount) + ' deposit (25%) taken by card. Install booked for ' + f.date(hp.install) + '.' },
+        { date: X.D(2026, 1, 12), ch: 'email', dir: 'inbound', biz: 'dge', who: 'Helen Pennington', title: 'Thank-you email and 5★ Trustpilot review', body: '“Really tidy install, and the team explained everything.”' },
+        { date: solar.install, ch: 'visit', biz: 'dge', who: 'Amy Hale', title: 'Solar PV and battery installed', body: solar.panels + ' panels (' + solar.kwp + ' kWp) and ' + solar.batteries + ' battery modules. Customer shown the monitoring app.' }
+      ].sort((a, b) => b.date - a.date);
+    }
+    const out = [];
+    js.forEach(j => {
+      if (j.biz === 'ppm') { out.push({ date: j.install, ch: 'visit', biz: 'ppm', who: 'Liam Cole', title: j.type + ' completed', body: j.covered ? 'Covered by plan.' : 'Invoiced ' + f.gbp(j.value) + '.' }); return; }
+      out.push({ date: j.sale, ch: 'call', dir: 'outbound', biz: j.biz, who: 'Jess Turner', title: j.type + ' quote accepted', body: f.gbp(j.stages[0].amount) + ' deposit taken.' });
+      if (j.install <= AS_AT) out.push({ date: j.install, ch: 'visit', biz: j.biz, who: 'Install team', title: j.type + ' installed', body: 'Handover completed with the customer.' });
+    });
+    return out.sort((a, b) => b.date - a.date).slice(0, 8);
+  }
+  function notesFor(c) {
+    if (c.id === 'C-10021') return [
+      { date: X.D(2026, 11, 18), who: 'Jess Turner, Sales', text: 'Mark works from home in the loft office, which is why they asked about air conditioning. Follow up after Christmas.' }
+    ];
+    return [{ date: AS_AT - 21, who: 'Karen Doyle, Office', text: 'Prefers to be contacted by email.' }];
+  }
+
   DUI.mount({
     template: '#page',
     setup() {
@@ -155,20 +216,23 @@
       const items = computed(() => servicesFor(c.value));
       const total = computed(() => X.sumBy(items.value, i => i.value));
       const usedBiz = computed(() => [...new Set(items.value.map(i => i.biz))]);
-      const byBiz = computed(() => { const o = {}; items.value.forEach(i => o[i.biz] = (o[i.biz] || 0) + i.value); return o; });
       const initials = computed(() => c.value.name.replace(/&.*?(\w+)$/, '$1').split(' ').filter(w => /^[A-Z]/.test(w)).map(w => w[0]).slice(0, 2).join(''));
-      const opt = computed(() => {
-        const rows = items.value.filter(i => i.value > 0).sort((a, b) => b.value - a.value);
-        return {
-          animation: false, grid: baseGrid({ left: 16, right: 70, top: 4, bottom: 0 }),
-          tooltip: tooltip({ trigger: 'item', axisPointer: { type: 'none' }, formatter: p => `<b>${rows[p.dataIndex].service}</b><br>${X.BIZ[rows[p.dataIndex].biz].name}<br>${f.gbp(p.value)} paid` }),
-          yAxis: catAxis(rows.map(r => r.service), { inverse: true, axisLabel: { color: C.ink2, fontSize: 12 } }),
-          xAxis: valueAxis({ show: false }),
-          series: [{ type: 'bar', barWidth: 18, data: rows.map(r => ({ value: Math.round(r.value), itemStyle: { color: X.BIZ[r.biz].colour, borderRadius: [0, 4, 4, 0] } })),
-            label: { show: true, position: 'right', color: C.ink, fontWeight: 600, fontSize: 12, formatter: p => f.gbp(p.value) } }]
-        };
+      const comms = computed(() => commsFor(c.value));
+      const notes = computed(() => notesFor(c.value));
+      const noteText = ref(notesFor(c.value)[0].text);
+      const editing = ref(false);
+      const noteBox = ref(null);
+      const startEdit = () => { editing.value = true; Vue.nextTick(() => noteBox.value && noteBox.value.focus()); };
+      // how long they've been a customer: from their first purchase, plan or job to today
+      const tenure = computed(() => {
+        const cu = c.value;
+        const dates = [...(cu.history || []).map(h => h.date), ...(cu.plans || []).map(p => p.from), ...cu.jobs.map(id => X.JOB[id]).filter(j => j && !j.pipeline).map(j => j.sale)];
+        const [y1, m1, d1] = X.parts(Math.min(...dates)), [y2, m2, d2] = X.parts(AS_AT);
+        const months = (y2 - y1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0);
+        const yrs = Math.floor(months / 12), mos = months % 12;
+        return [yrs ? `${yrs} year${yrs > 1 ? 's' : ''}` : '', mos ? `${mos} month${mos > 1 ? 's' : ''}` : ''].filter(Boolean).join(' ') || 'less than a month';
       });
-      return { X, f, list, cid, c, items, total, usedBiz, byBiz, initials, opt };
+      return { X, f, CH, list, cid, c, items, total, usedBiz, initials, comms, notes, noteText, editing, noteBox, startEdit, tenure };
     }
   });
 })();
