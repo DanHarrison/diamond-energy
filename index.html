@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cash · Diamond Group</title>
+<link rel="icon" href="assets/diamond-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<body>
+<div id="app" v-cloak></div>
+
+<script type="text/x-template" id="page">
+<app-shell page="cash">
+  <div class="hello">
+    <h1>Good morning, Ian</h1>
+    <p>{{ scope }} · {{ f.date(X.AS_AT) }}</p>
+  </div>
+
+  <div class="answers">
+    <!-- 1. cash now -->
+    <div class="ans">
+      <div class="q"><span class="n">1</span>How much cash do I have right now?</div>
+      <div class="a">{{ f.gbp(o.today) }}</div>
+      <div class="why">In the bank this morning{{ biz === 'all' ? ', across all three businesses' : '' }}.</div>
+      <div class="rows">
+        <div class="row" v-for="r in nowRows" :key="r.label">
+          <span class="sw" :style="{background: r.colour}"></span><span>{{ r.label }}</span><b>{{ f.gbp(r.value) }}</b>
+          <div class="mini"><i :style="{width: r.pct + '%', background: r.colour}"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. when does it dip -->
+    <div class="ans">
+      <div class="q"><span class="n">2</span>When is cash going to dip?</div>
+      <div class="a date">{{ longDate(o.lowDay) }}</div>
+      <div class="why">Cash falls to <b>{{ f.gbp(o.low) }}</b>, which is <b>{{ f.k(o.today - o.low) }} less than today</b>. The cause is {{ drivers.length }} large {{ drivers.length === 1 ? 'payment' : 'payments' }} {{ monthName(drivers[0]?.date) === monthName(drivers[drivers.length - 1]?.date) ? 'in ' + monthName(drivers[0]?.date) : 'between ' + monthName(drivers[0]?.date) + ' and ' + monthName(drivers[drivers.length - 1]?.date) }} (see below).</div>
+      <div v-for="b in runsOut" :key="b.id" class="callout crit">
+        <icon n="alert" :s="16"></icon>
+        <div><b>{{ b.name }} runs out of cash on {{ f.date(b.o.firstNeg) }}.</b> It needs a {{ f.k(-b.o.headroom) }} top-up before then.</div>
+      </div>
+      <div v-if="!runsOut.length && o.low < o.buffer" class="callout warn"><icon n="alert" :s="16"></icon><div>Drops below the {{ f.k(o.buffer) }} safety buffer from {{ f.date(o.firstBuf) }}.</div></div>
+      <div v-if="!runsOut.length && o.low >= o.buffer" class="callout good"><icon n="check" :s="16"></icon><div>Never drops below the {{ f.k(o.buffer) }} safety buffer.</div></div>
+    </div>
+
+    <!-- 3. what can I take out -->
+    <div class="ans withdraw">
+      <div class="q"><span class="n">3</span>What can I take out?</div>
+      <div class="a">{{ f.k(o.safe) }}</div>
+      <div class="why" v-if="o.safe > 0">You can take out <b>{{ f.k(o.safe) }}</b> from the business.</div>
+      <div class="why" v-else>Nothing yet. {{ X.BIZ[biz]?.name }} needs <b>{{ f.k(-o.headroom) }}</b> put in before {{ f.date(o.firstNeg || o.firstBuf) }}.</div>
+      <div class="ledger">
+        <div><span>Cash in the bank</span><b>{{ f.gbp(o.today) }}</b></div>
+        <div><span><icon n="shield" :s="14"></icon>You have {{ f.k(o.buffer) }} in reserves</span><b>−{{ f.gbp(o.buffer) }}</b></div>
+        <div v-if="vat"><span><icon n="receipt" :s="14"></icon>VAT is due in {{ vat.days }} days, and that's reserved too</span><b>−{{ f.gbp(vat.amount) }}</b></div>
+        <div><span><icon n="trend" :s="14"></icon>Bills before the dip on {{ f.dateShort(o.lowDay) }}, after money coming in</span><b>−{{ f.gbp(bills) }}</b></div>
+        <div class="tot"><span>You can take out</span><b :class="{neg: o.headroom < 0}">{{ f.gbp(o.headroom) }}</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card chartcard">
+    <div>
+      <h3>Cash balance: last 3 months and next 6 months</h3>
+      <div class="sub">Solid line is the actual bank balance. Dashed line is the forecast from signed jobs, orders, wages and tax.</div>
+      <e-chart :option="opt" :height="270"></e-chart>
+    </div>
+    <div class="drivers">
+      <h4>What causes the dip</h4>
+      <div class="drv" v-for="d in drivers" :key="d.date + d.what">
+        <div class="dt"><b>{{ dayNum(d.date) }}</b><small>{{ monShort(d.date) }}</small></div>
+        <div class="w"><b>{{ shortWhat(d) }}</b><small><span class="sw" :style="{background: X.BIZ[d.biz].colour}"></span>{{ X.BIZ[d.biz].short }} · {{ d.party }}</small></div>
+        <div class="amt">−{{ f.k(d.amount) }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot-note"><icon n="info" :s="13"></icon>Demonstration with fictional data. Live version reads the bank feeds, Xero and job records for all three companies.</div>
+</app-shell>
+</script>
+
+<script>
+(function () {
+  const X = DIAMOND, f = X.fmt, { store, C, tooltip, baseGrid, valueAxis, axisK, ttRow } = DUI;
+  const { computed } = Vue;
+  const AS_AT = X.AS_AT;
+  const longDate = n => X.toDate(n).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const monthName = n => n ? X.toDate(n).toLocaleDateString('en-GB', { month: 'long', timeZone: 'UTC' }) : '';
+  const monShort = n => X.toDate(n).toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
+  const dayNum = n => X.toDate(n).getUTCDate();
+  const shortWhat = d => /battery/i.test(d.what) ? 'Battery bulk order' : /panel/i.test(d.what) ? 'Solar panel container' : /heat pump/i.test(d.what) ? 'Heat pump bulk order' : /Corporation/i.test(d.what) ? 'Corporation tax' : /VAT/i.test(d.what) ? 'VAT bill' : d.what;
+  const chartLabel = d => ({ 'Battery bulk order': 'Batteries', 'Solar panel container': 'Panels', 'Heat pump bulk order': 'Heat pumps', 'Corporation tax': 'Corp. tax', 'VAT bill': 'VAT' }[shortWhat(d)] || shortWhat(d));
+
+  DUI.mount({
+    template: '#page',
+    setup() {
+      const biz = computed(() => store.biz);
+      const o = computed(() => X.outlook(biz.value));
+      const scope = computed(() => biz.value === 'all' ? 'Diamond Green Energy, Diamond Climate and Diamond PPM' : X.BIZ[biz.value].name);
+      const nowRows = computed(() => {
+        const rows = biz.value === 'all'
+          ? X.BUSINESSES.map(b => ({ label: b.name, colour: b.colour, value: X.balanceToday(b.id) }))
+          : X.BIZ[biz.value].banks.map(a => ({ label: `${a.bank} ${a.name} ••${a.mask}`, colour: X.BIZ[biz.value].colour, value: o.value.today * a.share }));
+        const max = Math.max(...rows.map(r => r.value));
+        return rows.map(r => ({ ...r, pct: Math.max(2, r.value / max * 100) }));
+      });
+      const drivers = computed(() => X.dipDrivers(biz.value));
+      const runsOut = computed(() => X.BUSINESSES.filter(b => X.bizList(biz.value).includes(b.id)).map(b => ({ ...b, o: X.outlook(b.id) })).filter(b => b.o.firstNeg));
+      // the next VAT bill falling before the low point is ring-fenced, not spare cash
+      const vat = computed(() => {
+        const ids = X.bizList(biz.value);
+        const v = X.flows.filter(x => x.cat === 'VAT' && x.dir === -1 && x.date > AS_AT && x.date <= o.value.lowDay && ids.includes(x.biz));
+        if (!v.length) return null;
+        const due = Math.min(...v.map(x => x.due));
+        return { due, days: due - AS_AT, amount: X.sumBy(v.filter(x => x.due === due), x => x.amount) };
+      });
+      const bills = computed(() => o.value.today - o.value.low - (vat.value ? vat.value.amount : 0));
+
+      const opt = computed(() => {
+        const dl = X.daily(biz.value);
+        const from = X.D(2026, 9, 1);
+        const keys = new Set([AS_AT, o.value.lowDay, X.END, ...drivers.value.map(d => d.date)]);
+        for (let d = from; d <= X.END; d += 7) keys.add(d);
+        const days = [...keys].filter(d => d >= from).sort((a, b) => a - b);
+        const colour = biz.value === 'all' ? C.balance : X.BIZ[biz.value].colour;
+        const pt = d => [X.iso(d), Math.round(dl.at(d))];
+        const low = o.value;
+        return {
+          animation: false,
+          grid: baseGrid({ top: 34, right: 24, bottom: 4 }),
+          tooltip: tooltip({ formatter: ps => { const p = ps.find(q => q.value && q.value[1] !== null); if (!p) return ''; const d = p.value[0]; return `<div style="font-weight:600;margin-bottom:4px">${f.date(X.D(+d.slice(0,4), +d.slice(5,7), +d.slice(8,10)))}</div>` + ttRow(colour, X.D(+d.slice(0,4), +d.slice(5,7), +d.slice(8,10)) <= AS_AT ? 'Bank balance' : 'Forecast balance', f.gbp(p.value[1])); } }),
+          xAxis: { type: 'time', min: X.iso(from), max: X.iso(X.END), axisLabel: { color: C.muted, fontSize: 12, formatter: v => { const d = new Date(v); return d.toLocaleString('en-GB', { month: 'short' }) + (d.getMonth() === 0 ? ' ' + d.getFullYear() : ''); } }, axisLine: { lineStyle: { color: '#D5E1E2' } }, splitLine: { show: false }, minInterval: 28 * 864e5 },
+          yAxis: valueAxis({ min: v => Math.min(0, Math.floor(v.min / 50000) * 50000), axisLabel: { color: C.muted, fontSize: 12, formatter: axisK } }),
+          series: [
+            { type: 'line', data: days.filter(d => d <= AS_AT).map(pt), showSymbol: false, smooth: 0.3, lineStyle: { color: colour, width: 3 },
+              areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(11,43,50,.12)' }, { offset: 1, color: 'rgba(11,43,50,0)' }]) },
+              markLine: { symbol: 'none', silent: true, data: [
+                { xAxis: X.iso(AS_AT), lineStyle: { color: '#0B2B32', width: 1 }, label: { formatter: 'Today', position: 'end', color: '#0B2B32', fontWeight: 600, fontSize: 12 } },
+                { yAxis: low.buffer, lineStyle: { color: C.crit, type: 'dashed', width: 1.3 }, label: { formatter: 'Reserves ' + axisK(low.buffer), position: 'insideStartTop', color: C.crit, fontSize: 11.5 } },
+                { yAxis: 0, lineStyle: { color: '#9DB0B4', width: 1 }, label: { show: false } }
+              ] } },
+            { type: 'line', data: days.filter(d => d >= AS_AT).map(pt), showSymbol: false, smooth: 0.3, lineStyle: { color: colour, width: 3, type: [7, 5] },
+              areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(43,123,208,.08)' }, { offset: 1, color: 'rgba(43,123,208,0)' }]) },
+              markArea: { silent: true, itemStyle: { color: 'rgba(43,123,208,.04)' }, data: [[{ xAxis: X.iso(AS_AT) }, { xAxis: X.iso(X.END) }]] },
+              markPoint: { symbol: 'circle', symbolSize: 8, data: [
+                ...drivers.value.map(d => ({ coord: pt(d.date), itemStyle: { color: '#E07A5F', borderColor: '#fff', borderWidth: 2 }, label: { show: false } })),
+                { coord: pt(low.lowDay), symbolSize: 13, itemStyle: { color: low.low < 0 ? C.crit : '#0B2B32', borderColor: '#fff', borderWidth: 3 }, label: { show: true, formatter: 'Lowest ' + axisK(low.low), position: 'bottom', color: low.low < 0 ? C.crit : '#0B2B32', fontWeight: 700, fontSize: 12, distance: 10 } }
+              ] } }
+          ]
+        };
+      });
+
+      return { store, X, f, biz, o, scope, nowRows, drivers, runsOut, vat, bills, opt, longDate, monthName, monShort, dayNum, shortWhat };
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customers · Diamond Group</title>
+<link rel="icon" href="assets/diamond-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<style>
+  .cx-top { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 16px; }
+  .cx-top .select { margin-left: auto; min-width: 280px; padding: 9px 12px; font-size: 13.5px; }
+  .cx-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; }
+  .cx-ltv { text-align: right; padding-left: 28px; border-left: 1px solid var(--line); }
+  .cx-ltv small { display: block; color: var(--muted); font-size: 13px; }
+  .cx-ltv b { font-family: var(--display); font-size: 40px; font-weight: 600; letter-spacing: -.025em; color: var(--teal); }
+  .cx-ltv .uses { display: inline-flex; gap: 6px; margin-top: 6px; }
+  .cx-body { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; margin-top: 20px; }
+  .bizgroup + .bizgroup { margin-top: 16px; }
+  .bizgroup h4 { margin: 0 0 9px; display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .svcgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .bylegend { display: flex; gap: 10px; margin-top: 12px; }
+  .bylegend div { flex: 1; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .bylegend small { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+  .bylegend b { font-family: var(--display); font-size: 19px; font-weight: 600; }
+  .empty { color: var(--faint); font-size: 12.5px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 12px; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<body>
+<div id="app" v-cloak></div>
+
+<script type="text/x-template" id="page">
+<app-shell page="customers" :filter="false">
+  <div class="cx-top">
+    <div class="hello" style="margin:0">
+      <h1>Customer 360</h1>
+      <p>One record per customer, across all three Diamond businesses</p>
+    </div>
+    <select class="select" v-model="cid">
+      <option v-for="c in list" :key="c.id" :value="c.id">{{ c.name }} · {{ c.town }}</option>
+    </select>
+  </div>
+
+  <div class="card cx-head">
+    <div class="cust-head">
+      <div class="avatar">{{ initials }}</div>
+      <div>
+        <h2>{{ c.name }}</h2>
+        <div class="meta">
+          <span><icon n="pin" :s="14"></icon>{{ c.address }}, {{ c.town }} {{ c.postcode }}</span>
+          <span><icon n="phone" :s="14"></icon>{{ c.phone }}</span>
+          <span><icon n="mail" :s="14"></icon>{{ c.email }}</span>
+        </div>
+        <div class="meta">
+          <span class="tag">Customer since {{ c.since }}</span>
+          <span class="tag">{{ c.type }}</span>
+          <span class="tag">Found us via {{ c.source }}</span>
+          <span class="tag" v-if="c.rating"><icon n="star" :s="12"></icon>{{ c.rating }}★ Trustpilot review</span>
+        </div>
+      </div>
+    </div>
+    <div class="cx-ltv">
+      <small>Lifetime value</small>
+      <b>{{ f.gbp(total) }}</b>
+      <div class="muted" style="font-size:12.5px">{{ items.length }} services · {{ usedBiz.length }} of 3 Diamond businesses</div>
+      <div class="uses"><span v-for="b in X.BUSINESSES" :key="b.id" class="pill" :class="usedBiz.includes(b.id) ? 'good' : 'grey'" :style="usedBiz.includes(b.id) ? {background: b.soft, color: b.colour} : {}"><i class="sw" :style="{background: usedBiz.includes(b.id) ? b.colour : '#C9D5D7'}"></i>{{ b.short }}</span></div>
+    </div>
+  </div>
+
+  <div class="cx-body">
+    <div class="card">
+      <div class="card-h"><div><h3>Services they have</h3><p>Everything this customer buys from the group, in one place</p></div></div>
+      <div v-for="b in X.BUSINESSES" :key="b.id" class="bizgroup">
+        <h4><span class="sw" :style="{background: b.colour}"></span>{{ b.name }}</h4>
+        <div class="svcgrid" v-if="items.filter(i => i.biz === b.id).length">
+          <div v-for="i in items.filter(i => i.biz === b.id)" :key="i.service" class="svc" :class="{ended: i.ended}" :style="{'--c': b.colour, '--soft': b.soft}">
+            <div class="hd">
+              <div class="ic"><icon :n="i.icon" :s="17"></icon></div>
+              <div><b>{{ i.service }}</b><div class="bz">{{ i.detail }}</div></div>
+              <div class="val">{{ f.gbp(i.value) }}<small>{{ i.valueNote }}</small></div>
+            </div>
+            <div class="dt"><span class="pill" :class="i.statusCls">{{ i.status }}</span></div>
+          </div>
+        </div>
+        <div v-else class="empty">No {{ b.short }} services yet</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div><h3>Lifetime value by service</h3><p>Paid to date</p></div></div>
+      <e-chart :option="opt" :height="Math.max(200, items.filter(i => i.value > 0).length * 40 + 20)"></e-chart>
+      <div class="bylegend">
+        <div v-for="b in X.BUSINESSES" :key="b.id"><small><i class="sw" :style="{background: b.colour}"></i>{{ b.short }}</small><b>{{ f.gbp(byBiz[b.id] || 0) }}</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot-note"><icon n="info" :s="13"></icon>Demonstration with fictional customers. Live version joins the job, plan and invoice records of all three companies.</div>
+</app-shell>
+</script>
+
+<script>
+(function () {
+  const X = DIAMOND, f = X.fmt, { C, tooltip, baseGrid, valueAxis, catAxis, axisK } = DUI;
+  const { computed, ref } = Vue;
+  const AS_AT = X.AS_AT;
+  const PRICE = Object.fromEntries(X.PLANS.map(p => [p.plan, p.price]));
+  const ICON = t => /Battery Storage/.test(t) ? 'battery' : /Solar/.test(t) ? 'sun' : /Heat Pump/i.test(t) ? 'wind' : /Air Con/.test(t) ? 'snow' : /Boiler|Heating/.test(t) ? 'flame' : /plan/.test(t) ? 'shield' : /contract/i.test(t) ? 'building' : 'wrench';
+  const monthYear = n => X.toDate(n).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+  function servicesFor(c) {
+    const items = [];
+    (c.history || []).forEach(h => items.push({ service: h.service, biz: h.biz, value: h.value, detail: h.note, status: 'Completed ' + monthYear(h.date), statusCls: 'grey', icon: ICON(h.service), valueNote: 'paid', ended: false }));
+    c.jobs.map(id => X.JOB[id]).filter(j => j && !j.pipeline && j.biz !== 'ppm').forEach(j => {
+      const spec = j.kwp ? `${j.panels} panels · ${j.kwp} kWp${j.batteries ? ` · ${j.batteries} battery module${j.batteries > 1 ? 's' : ''}` : ''}` : j.batteries ? `${j.batteries} × Sigenergy battery module${j.batteries > 1 ? 's' : ''}` : j.hp ? 'Air source heat pump & cylinder' : j.boiler ? 'Combi boiler replacement' : '';
+      const done = j.install <= AS_AT;
+      items.push({ service: j.type, biz: j.biz, value: j.received, detail: spec || j.id, icon: ICON(j.type),
+        status: done ? 'Installed ' + f.date(j.install) : 'Booked for ' + f.date(j.install), statusCls: done ? 'good' : 'info',
+        valueNote: j.received < j.value ? `paid of ${f.gbp(j.value)}` : 'paid' });
+    });
+    (c.plans || []).forEach(p => {
+      const end = p.to && p.to < AS_AT ? p.to : AS_AT;
+      const months = Math.max(1, Math.round((end - p.from) / 30.44));
+      const price = PRICE[p.plan];
+      items.push({ service: p.plan + ' plan', biz: 'ppm', value: months * price, icon: 'shield', detail: `£${price.toFixed(2)} a month · since ${monthYear(p.from)}`,
+        status: p.to && p.to < AS_AT ? 'Ended ' + monthYear(p.to) + (p.plan === 'Boiler Care' ? ' (now has a heat pump)' : '') : 'Active · Direct Debit', statusCls: p.to && p.to < AS_AT ? 'grey' : 'good',
+        valueNote: `${months} months`, ended: !!(p.to && p.to < AS_AT) });
+    });
+    (c.contracts || []).forEach(id => {
+      const con = X.contracts.find(k => k.id === id);
+      const paid = X.sumBy(con.invoices.filter(i => i.state === 'received'), i => i.amount);
+      items.push({ service: 'PPM contract', biz: 'ppm', value: paid, icon: 'building', detail: `${con.desc} · ${f.gbp(con.annual)} a year`, status: 'Active · invoiced quarterly', statusCls: 'good', valueNote: 'paid since Dec 2025' });
+    });
+    const visits = c.jobs.map(id => X.JOB[id]).filter(j => j && j.biz === 'ppm');
+    if (visits.length) {
+      const paid = X.sumBy(visits, j => j.received || 0);
+      const covered = visits.filter(j => j.covered).length;
+      items.push({ service: 'Servicing & repairs', biz: 'ppm', value: paid, icon: 'wrench', detail: `${visits.length} visit${visits.length > 1 ? 's' : ''} in the last 12 months${covered ? ` · ${covered} covered by plan` : ''}`,
+        status: 'Last visit ' + f.date(Math.max(...visits.map(j => j.install))), statusCls: 'grey', valueNote: 'paid' });
+    }
+    return items;
+  }
+
+  DUI.mount({
+    template: '#page',
+    setup() {
+      const list = X.customers.filter(c => c.featured).map(c => ({ ...c, ltv: X.sumBy(servicesFor(c), i => i.value) })).sort((a, b) => b.ltv - a.ltv);
+      const cid = ref(new URLSearchParams(location.search).get('c') || 'C-10021');
+      const c = computed(() => X.CUST[cid.value]);
+      const items = computed(() => servicesFor(c.value));
+      const total = computed(() => X.sumBy(items.value, i => i.value));
+      const usedBiz = computed(() => [...new Set(items.value.map(i => i.biz))]);
+      const byBiz = computed(() => { const o = {}; items.value.forEach(i => o[i.biz] = (o[i.biz] || 0) + i.value); return o; });
+      const initials = computed(() => c.value.name.replace(/&.*?(\w+)$/, '$1').split(' ').filter(w => /^[A-Z]/.test(w)).map(w => w[0]).slice(0, 2).join(''));
+      const opt = computed(() => {
+        const rows = items.value.filter(i => i.value > 0).sort((a, b) => b.value - a.value);
+        return {
+          animation: false, grid: baseGrid({ left: 16, right: 70, top: 4, bottom: 0 }),
+          tooltip: tooltip({ trigger: 'item', axisPointer: { type: 'none' }, formatter: p => `<b>${rows[p.dataIndex].service}</b><br>${X.BIZ[rows[p.dataIndex].biz].name}<br>${f.gbp(p.value)} paid` }),
+          yAxis: catAxis(rows.map(r => r.service), { inverse: true, axisLabel: { color: C.ink2, fontSize: 12 } }),
+          xAxis: valueAxis({ show: false }),
+          series: [{ type: 'bar', barWidth: 18, data: rows.map(r => ({ value: Math.round(r.value), itemStyle: { color: X.BIZ[r.biz].colour, borderRadius: [0, 4, 4, 0] } })),
+            label: { show: true, position: 'right', color: C.ink, fontWeight: 600, fontSize: 12, formatter: p => f.gbp(p.value) } }]
+        };
+      });
+      return { X, f, list, cid, c, items, total, usedBiz, byBiz, initials, opt };
+    }
+  });
+})();
+</script>
+</body>
+</html>
